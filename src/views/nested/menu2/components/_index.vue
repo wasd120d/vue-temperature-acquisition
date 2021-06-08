@@ -1,6 +1,4 @@
 <template>
-
-
   <div>
 
     <el-button type="primary" @click="on_click">第一次渲染曲线</el-button>

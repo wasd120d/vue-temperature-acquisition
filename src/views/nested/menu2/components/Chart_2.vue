@@ -2,10 +2,10 @@
   <div class="echarts">
     <el-row :gutter="20">
       <el-col :span="12">
-        <div id="chart1" :style="{width: '100%', height: '200px'}"></div>
+        <div id="chart3" :style="{width: '100%', height: '200px'}"></div>
       </el-col>
       <el-col :span="12">
-        <div id="chart2" :style="{width: '100%', height: '300px'}"></div>
+        <div id="chart4" :style="{width: '100%', height: '300px'}"></div>
       </el-col>
     </el-row>
     
@@ -39,7 +39,7 @@ export default {
       xArray:[],
       yArray:[],
 
-      myChart2: null,
+      myChart3: null,
       eChartOpinion:{
         title: { text: 'tempPerSecArray' },
         tooltip: {},
@@ -122,8 +122,8 @@ export default {
   },
   mounted () {
     this.draw1()
-    this.myChart2 = this.$echarts.init(document.getElementById('chart2'))
-    setInterval(this.draw2,1000)
+    this.myChart3 = this.$echarts.init(document.getElementById('chart4'))
+    setInterval(this.draw3,1000)
   },
   methods: {
     addData(){
@@ -141,29 +141,59 @@ export default {
     },
     draw1 () {
       // 基于准备好的dom，初始化echarts实例，注意id不要写错
-      let myChart = this.$echarts.init(document.getElementById('chart1'))
-      // 绘制图表
-      myChart.setOption({
-        title: { text: '实时温度' },
+      let myChart = this.$echarts.init(document.getElementById('chart3'))
+      var option = {
+        title: {
+          text: '折线图堆叠'
+        },
         tooltip: {
-          trigger: 'axis',
+          trigger: 'axis'
+        },
+        legend: {
+          data: ['邮件营销', '联盟广告']
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        toolbox: {
+          feature: {
+            saveAsImage: {}
+          }
         },
         xAxis: {
-          data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
+          type: 'category',
+          boundaryGap: false,
+          data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
         },
-        yAxis: {},
-        series: [{
-          name: '销量',
-          type: 'bar',
-          data: [5, 20, 36, 10, 10, 20]
-        }]
-      })
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            name: '邮件营销',
+            type: 'line',
+            stack: '总量',
+            data: [120, 132, 101, 134, 90, 230, 210]
+          },
+          {
+            name: '联盟广告',
+            type: 'line',
+            stack: '总量',
+            data: [220, 182, 191, 234, 290, 330, 310]
+          },  
+        ]
+      };
+      // 绘制图表
+      myChart.setOption(option)
     },
-    draw2 () {
+    draw3 () {
       // 基于准备好的dom，初始化echarts实例，注意id不要写错
       // console.log(this.eChartOpinion)
       // 绘制图表
-      this.myChart2.setOption(this.eChartOpinion)
+      this.myChart3.setOption(this.eChartOpinion)
     }
   }
 }
