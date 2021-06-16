@@ -1,18 +1,11 @@
 <template>
   <div class="echarts">
     <el-row :gutter="20">
-      <el-select v-model="select_value" placeholder="请选择" class="selection" @change="changeChart()">
-        <el-option
-          v-for="item in select_options"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value">
-        </el-option>
-      </el-select>
-    </el-row>
-    <el-row :gutter="20">
-      <el-col>
-        <div :id="chartID" :style="{width: '100%', height: '300px'}"></div>
+      <el-col :span="12">
+        <div id="chart3" :style="{width: '100%', height: '200px'}"></div>
+      </el-col>
+      <el-col :span="12">
+        <div id="chart4" :style="{width: '100%', height: '300px'}"></div>
       </el-col>
     </el-row>
   </div>
@@ -24,9 +17,6 @@
 import mqtt from 'mqtt'
 
 export default {
-  props:{
-    chartID:{},
-  },
   filters: {
     statusFilter(status) {
       const statusMap = {
@@ -41,31 +31,17 @@ export default {
   data () {
     return {
       mqtt_msg: null,
-      //图表数据
-      tempPerSecArray: [],
-      avgArray:[],
-      avgArray:[],
-      avgArray:[],
+      //实时数据组
+      tempPerSecArray:[],
       xArray:[],
       yArray:[],
-
       client: {
         connected: false,
       },
-      select_options: [
-        {
-          value: 1,
-          label: 'BOX000001/UNT000001/BAT000001/TEMP'
-        }, 
-        {
-          value: 2,
-          label: 'BOX000001/UNT000001/BAT000001/TEMP'
-        }, 
-      ],
-      select_value:'',
+
       myChart3: null,
       eChartOpinion:{
-        title: { text: 'chart_bat' },
+        title: { text: 'tempPerSecArray' },
         tooltip: {},
         xAxis: {
           type: 'category',
@@ -74,53 +50,23 @@ export default {
         yAxis: {
           type: 'value'
         },
-        series: [
-          {
-            name: 'avg',
-            type: 'line',
-            data: [],
-          },
-          {
-            name: 'max',
-            type: 'line',
-            data: this.maxArray,
-          },
-          {
-            name: 'min',
-            type: 'line',
-            data: this.minArray,
-          },
-        ]
+        series: [{
+          type: 'line',
+          data: this.yArray,
+        }]
       },
 
     }
   },
   created(){
-  },
-  mounted () {
-    this.myChart3 = this.$echarts.init(document.getElementById(this.chartID))
-    setInterval(this.drawEchart,1000)
-  },
-  methods: {
-    changeChart() {
-      // console.log("组内相对号",this.select_value)
-      // console.log("tessssssssssssss:",this.select_options[this.select_value-1])
-      this.avgArray = []
-      this.maxArray = []
-      this.minArray = []
-      this.subTopic(this.select_options[this.select_value-1].label)
-    },
-
-    
-    subTopic(topic) {
-      // 连接选项
+    // 连接选项
       const options = {
-        clean: true, // true: 清除会话, false: 保留会话
-        connectTimeout: 4000, // 超时时间
-        // 认证信息
-        clientId: 'emqx_test',
-        username: 'emqx_test',
-        password: 'emqx_test'
+            clean: true, // true: 清除会话, false: 保留会话
+            connectTimeout: 4000, // 超时时间
+            // 认证信息
+            clientId: 'emqx_test',
+            username: 'emqx_test',
+            password: 'emqx_test',
       }
 
       // 连接字符串, 通过协议指定使用的连接方式
@@ -130,52 +76,54 @@ export default {
       // mqtts 加密 TCP 连接
       // wxs 微信小程序连接A
       // alis 支付宝小程序连接
+      //const connectUrl = 'wss://broker.emqx.io:8084/mqtt'
       const connectUrl = 'ws://1.117.42.36:8083/mqtt'
+      const client = mqtt.connect(connectUrl, options)
+
       //创建连接，显示连接失误
       try {
         this.client = mqtt.connect(connectUrl, options)
       } catch(error){
         console.log('mqtt.connect error', error)
       }
-      console.log('client数据：',this.client)
-      
+
       this.client.on('connect', () => {
         console.log('成功连接服务端')
       })
 
-      this.client.subscribe([topic], function(err) {
+      this.client.subscribe(['BOX000001/UNT000001/BAT000001/TEMP/AVG'], function(err) {
         if (!err) {
           console.log('订阅')
         }
       })
 
       this.client.on('error', (error) => {
-        console.log('连接失败:', error)
+       console.log('连接失败:', error)
       })
-      // mqtt数据获取
-      this.client.on('message', (topic_r, message) => {
+      //mqtt数据获取
+      this.client.on('message', (topic, message) => {
+        console.log(message.toString());
         this.mqtt_msg = message.toString()
         var json_msg = JSON.parse(this.mqtt_msg)
-        // json_msg格式{"avg":,"max":,"min":,"ts":}
-        // 时间戳
-        console.log(Date(json_msg.ts))
-        // console.log('收到消息：', topic, message.toString())
 
-        if (topic_r === topic) {
-          this.tempPerSecArray.push(this.storeTempP(json_msg.ts, json_msg.avg, json_msg.max, json_msg.min))
-          if (this.tempPerSecArray.length > 50) {
-            this.tempPerSecArray.shift()
-          }
-          this.eChartOpinion.xAxis.data = this.tempPerSecArray.map((item) => { return item.ts })
-          this.eChartOpinion.series[0].data = this.tempPerSecArray.map((item) => { return item.avg })
-          this.eChartOpinion.series[1].data = this.tempPerSecArray.map((item) => { return item.max })
-          this.eChartOpinion.series[2].data = this.tempPerSecArray.map((item) => { return item.min })
-          //console.log(this.tempPerSecArray)
+        this.tempPerSecArray.push(this.storeTempPSec(json_msg.ts, json_msg.avg))
+        if(this.tempPerSecArray.length > 10){
+          this.tempPerSecArray.shift()
         }
+        this.eChartOpinion.xAxis.data = this.tempPerSecArray.map((item)=>{ return item.name });
+        this.eChartOpinion.series[0].data = this.tempPerSecArray.map((item)=>{ return item.value });
+        console.log(this.tempPerSecArray)
       })
+  },
+  mounted () {
+    this.draw1()
+    this.myChart3 = this.$echarts.init(document.getElementById('chart4'))
+    setInterval(this.draw3,1000)
+  },
+  methods: {
+    addData(){
     },
-
-    storeTempP(ts, avg, max, min){
+    storeTempPSec(ts, value){
       const now = new Date(ts)
       var valueName =
         (now.getHours() >= 10 ? now.getHours() : '0' + now.getHours()) +
@@ -184,7 +132,7 @@ export default {
         ':' +
         (now.getSeconds() >= 10 ? now.getSeconds() : '0' + now.getSeconds())
       return {
-        ts: valueName, avg: avg, max: max, min: min
+        name: valueName, value: value,
         }
     },
     draw1 () {
@@ -237,7 +185,7 @@ export default {
       // 绘制图表
       myChart.setOption(option)
     },
-    drawEchart () {
+    draw3 () {
       // 基于准备好的dom，初始化echarts实例，注意id不要写错
       // console.log(this.eChartOpinion)
       // 绘制图表
